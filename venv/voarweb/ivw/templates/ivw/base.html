@@ -27,7 +27,17 @@
                         <a class="dropdown-item" href="{% url 'sdg_list' %}">SDGs</a>
                         <a class="dropdown-item" href="{% url 'materiality_issue_list' %}">Materialidades</a>
                         <a class="dropdown-item" href="{% url 'stakeholder_list' %}">Stakeholder</a>
+                        <a class="dropdown-item" href="{% url 'program_list' %}">Program</a>
+                    </div>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="cadastrosDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Demand Management
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="cadastrosDropdown">
                         <a class="dropdown-item" href="{% url 'demand_list' %}">Demands</a>
+                        <a class="dropdown-item" href="{% url 'demand_funnel' %}">Demand Funnel</a>
+            
                     </div>
                 </li>
             </ul>

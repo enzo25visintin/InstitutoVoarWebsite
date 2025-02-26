@@ -39,19 +39,19 @@ class DemandAnalysisForm(forms.ModelForm):
     stakeholders = forms.ModelMultipleChoiceField(
         queryset=Stakeholder.objects.all(),
         widget=forms.CheckboxSelectMultiple,
-        required=True,
+        required=False,
         label='Stakeholders'
     )
     materiality_issues = forms.ModelMultipleChoiceField(
         queryset=Materiality_Issue.objects.all(),
         widget=forms.CheckboxSelectMultiple,
-        required=True,
+        required=False,
         label='Materiality Issues'
     )
     sdgs = forms.ModelMultipleChoiceField(
         queryset=SDG.objects.all(),
         widget=forms.CheckboxSelectMultiple,
-        required=True,
+        required=False,
         label='SDGs'
     )
 
@@ -77,3 +77,14 @@ class SDG_x_DemandForm(forms.ModelForm):
     class Meta:
         model = SDG_x_Demands
         fields = ['sdg', 'demand']
+
+class ProgramForm(forms.ModelForm):
+    class Meta:
+        model = Program
+        fields = ['title', 'description']
+
+
+class ActionPlanForm(forms.ModelForm):
+    class Meta:
+        model = ActionPlan
+        fields = ['title', 'responsible', 'start_date', 'end_date', 'scope_detail', 'estimated_cost']
