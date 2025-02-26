@@ -6,26 +6,53 @@ from django.http import JsonResponse
 from .models import *
 from .forms import *
 from datetime import date
+from django.contrib.auth import login, logout
+
 
 # Create your views here.
 
+#Initial Views
 def home(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+    
     return render(request, 'ivw/home.html')
 
 def about(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+    
     return render(request, 'ivw/about.html')
 
-
-#Users
+#User Views
 def user_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated 
+
     users = User.objects.all()
+    query = request.GET.get('q')
+    if query:
+        users = User.objects.filter(
+            models.Q(name__icontains=query) |
+            models.Q(email__icontains=query) |
+            models.Q(company__icontains=query) |
+            models.Q(active__icontains=query) |
+            models.Q(telephone_number__icontains=query) |
+            models.Q(user_id__icontains=query)
+        )
     return render(request, 'ivw/user_list.html', {'users': users})
 
 def user_create(request):
+
     if request.method == 'POST':
         form = UserForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])  # Hash password
+            user.save()
             return redirect('user_list')
     else:
         form = UserForm()
@@ -36,6 +63,8 @@ def user_update(request, pk):
     if request.method == 'POST':
         form = UserForm(request.POST, instance=user)
         if form.is_valid():
+            if 'password' in form.cleaned_data and form.cleaned_data['password']:
+                user.set_password(form.cleaned_data['password'])  # Hash new password
             form.save()
             return redirect('user_list')
     else:
@@ -43,9 +72,53 @@ def user_update(request, pk):
     return render(request, 'ivw/user_form.html', {'form': form})
 
 
+#Login and Logout Views
+def user_login(request):
+    # Clear any previous messages before rendering the login page
+    storage = messages.get_messages(request)
+    storage.used = True  # This ensures old messages don't reappear
+
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+
+        try:
+            user = User.objects.get(email=email)
+            if user.check_password(password):
+                request.session['user_id'] = user.user_id  # Store session manually
+                messages.success(request, "Login successful!")
+                return redirect('home')  # Redirect to homepage or dashboard
+            else:
+                messages.error(request, "Invalid email or password.")
+        except User.DoesNotExist:
+            messages.error(request, "Invalid email or password.")
+
+    return render(request, "ivw/login.html")
+
+def user_logout(request):
+    # Clear any previous messages before rendering the login page
+    storage = messages.get_messages(request)
+    storage.used = True  # This ensures old messages don't reappear
+
+    request.session.flush()  # Clears the session
+    messages.success(request, "You have been logged out.")
+    return redirect("login")
+
+
 #SDGs
 def sdg_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated 
+
     sdgs = SDG.objects.all()
+    query = request.GET.get('q')
+    if query:
+        sdgs = SDG.objects.filter(
+            models.Q(sdg_number__icontains=query) |
+            models.Q(title__icontains=query) |
+            models.Q(description__icontains=query) 
+        )
     return render(request, 'ivw/sdg_list.html', {'sdgs': sdgs})
 
 def sdg_create(request):
@@ -72,7 +145,20 @@ def sdg_update(request, pk):
 
 #Materiality
 def materiality_issue_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated 
+
     issues = Materiality_Issue.objects.all()
+    query = request.GET.get('q')
+    if query:
+        issues = Materiality_Issue.objects.filter(
+            models.Q(materiality_issue_id__icontains=query) |
+            models.Q(materiality_issue_group__icontains=query) |
+            models.Q(theme__icontains=query) |
+            models.Q(criterion__icontains=query) |
+            models.Q(description__icontains=query) 
+        )
     return render(request, 'ivw/materiality_issue_list.html', {'issues': issues})
 
 def materiality_issue_create(request):
@@ -99,7 +185,20 @@ def materiality_issue_update(request, pk):
 
 #Stakeholders
 def stakeholder_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+
     stakeholders = Stakeholder.objects.all()
+    query = request.GET.get('q')
+    if query:
+        stakeholders = Stakeholder.objects.filter(
+            models.Q(stakeholder_id__icontains=query) |
+            models.Q(name__icontains=query) |
+            models.Q(email__icontains=query) |
+            models.Q(telephone_number__icontains=query) |
+            models.Q(company__icontains=query) 
+        )
     return render(request, 'ivw/stakeholder_list.html', {'stakeholders': stakeholders})
 
 def stakeholder_create(request):
@@ -125,6 +224,10 @@ def stakeholder_update(request, pk):
 
 #Demands
 def demand_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+
     demands = Demand.objects.all()
     query = request.GET.get('q')
     if query:
@@ -132,6 +235,7 @@ def demand_list(request):
             models.Q(status__icontains=query) |
             models.Q(insertion_date__icontains=query) |
             models.Q(title__icontains=query) |
+            models.Q(demand_id__icontains=query) |
             models.Q(description__icontains=query)
         )
 
@@ -251,9 +355,20 @@ def demand_analysis_ii(request, pk):
         'form': form
     })
 
-#Program
+#Programs
 def program_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+
     programs = Program.objects.all()
+    query = request.GET.get('q')
+    if query:
+        programs = Program.objects.filter(
+            models.Q(program_id__icontains=query) |
+            models.Q(title__icontains=query) |
+            models.Q(description__icontains=query)  
+        )
     return render(request, 'ivw/program_list.html', {'programs': programs})
 
 def program_create(request):
@@ -277,12 +392,27 @@ def program_update(request, pk):
         form = ProgramForm(instance=program)
     return render(request, 'ivw/program_form.html', {'form': form})
 
-#Demand funnel
+#Demand authorization
 def demand_funnel(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+
     # Recuperar todas as demandas com status "Aguardando Priorização"
     demands = Demand.objects.filter(status='Aguardando Priorização').annotate(
         significancy=(F('potential_impact_scale') + F('potential_effort_scale') + F('potential_beneficiaries_scale')) / 3
     ).order_by('-significancy')
+    query = request.GET.get('q')
+    if query:
+        demands = Demand.objects.filter(
+            models.Q(demand_id__icontains=query) |
+            models.Q(title__icontains=query) |
+            models.Q(potential_impact_scale__icontains=query) |
+            models.Q(potential_effort_scale__icontains=query) |
+            models.Q(potential_beneficiaries__icontains=query) |
+            models.Q(potential_beneficiaries_scale__icontains=query) |
+            models.Q(status__icontains=query) 
+        )
 
     # Copiar o status de cada demanda para a tabela temporária
     for demand in demands:
@@ -330,6 +460,10 @@ def save_changes(request):
 
 
 def demand_detail(request, pk):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+
     demand = get_object_or_404(Demand, pk=pk)
     return render(request, 'ivw/demand_details.html', {'demand': demand})
 
@@ -380,7 +514,18 @@ def update_status(request):
 
 #Planning of demands
 def planning_list(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+    
     demands = Demand.objects.filter(status='Aprovada')
+    query = request.GET.get('q')
+    if query:
+        demands = Demand.objects.filter(
+            models.Q(demand_id__icontains=query) |
+            models.Q(title__icontains=query) |
+            models.Q(status__icontains=query) 
+        )
     return render(request, 'ivw/planning_list.html', {'demands': demands})
 
 
@@ -400,6 +545,15 @@ def planning_demand_detail(request, demand_id):
 def action_plan_list(request, demand_id):
     demand = get_object_or_404(Demand, pk=demand_id)
     action_plans = demand.action_plans.all()
+    query = request.GET.get('q')
+    if query:
+        action_plans = ActionPlan.objects.filter(
+            models.Q(title__icontains=query) |
+            models.Q(responsible__icontains=query) |
+            models.Q(start_date__icontains=query) |
+            models.Q(end_date__icontains=query) |
+            models.Q(estimated_cost__icontains=query) 
+        )
     return render(request, 'ivw/action_plan_list.html', {'demand': demand, 'action_plans': action_plans})
 
 def action_plan_create(request, demand_id):
@@ -427,7 +581,7 @@ def action_plan_update(request, demand_id, pk):
         form = ActionPlanForm(instance=action_plan)
     return render(request, 'ivw/action_plan_form.html', {'form': form, 'demand': demand})
 
-# Conclude action planning
+
 def finalize_planning(request, demand_id):
     demand = get_object_or_404(Demand, pk=demand_id)
     action_plans = demand.action_plans.all()
@@ -438,8 +592,12 @@ def finalize_planning(request, demand_id):
     #demand.save()
     return redirect('planning_list')
 
-#Complete priorization
+
 def complete_prioritization(request):
+    #This page requires authentication
+    if 'user_id' not in request.session:
+        return redirect('login')  # Redirect to login page if not authenticated
+
     # Atualizar o status de todas as demandas aprovadas e seus planos de ação para "Em Execução"
     approved_demands = Demand.objects.filter(status='Aprovada')
     for demand in approved_demands:
@@ -450,6 +608,5 @@ def complete_prioritization(request):
             action_plan.status = 'Em Execução'
             action_plan.save()
     return redirect('home')
-
 
 

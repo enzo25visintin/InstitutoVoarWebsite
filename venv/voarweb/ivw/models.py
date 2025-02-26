@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
+
+
 
 # Create your models here.
 class User(models.Model):
@@ -8,14 +11,21 @@ class User(models.Model):
     user_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=100)
+    password = models.CharField(max_length=128)
     telephone_number = models.CharField(max_length=15)
     company = models.CharField(max_length=100)
     active = models.CharField(max_length=1, choices=Active_choices, default='1')
 
-
     def __str__(self):
         return self.name
+
+    def set_password(self, raw_password):
+        """Hashes the given password and stores it."""
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        """Checks if the given password matches the stored hashed password."""
+        return check_password(raw_password, self.password)
 
 
 class Demand(models.Model):

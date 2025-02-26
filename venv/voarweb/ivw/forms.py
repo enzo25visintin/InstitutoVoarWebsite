@@ -1,6 +1,10 @@
 from django import forms
 from .models import *
 
+class LoginForm(forms.Form):
+    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
 class UserForm(forms.ModelForm):
     class Meta: #class used to change behavior of model fields
         model = User
